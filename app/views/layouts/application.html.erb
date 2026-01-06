@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Diff Daily" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Diff Daily">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+
+    <%# Syntax highlighting CSS - loaded via CDN as importmap doesn't handle CSS %>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+  </head>
+
+  <body class="bg-gray-50">
+    <header class="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
+      <div class="container mx-auto px-6 py-4">
+        <h1 class="text-3xl font-bold text-gray-900">
+          <%= link_to "DiffDaily", root_path, class: "hover:text-blue-600 transition" %>
+        </h1>
+        <p class="text-sm text-gray-600 mt-1">Deep & Concise - OSS変更の定点観測</p>
+      </div>
+    </header>
+
+    <main class="container mx-auto mt-28 px-6 py-8">
+      <%= yield %>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-16">
+      <div class="container mx-auto px-6 py-6 text-center text-sm text-gray-600">
+        <p>&copy; <%= Time.current.year %> DiffDaily - Powered by AI</p>
+      </div>
+    </footer>
+  </body>
+</html>

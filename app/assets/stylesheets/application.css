@@ -1,0 +1,142 @@
+/*
+ * This is a manifest file that'll be compiled into application.css.
+ *
+ * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
+ * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
+ * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
+ * depending on specificity.
+ *
+ * Consider organizing styles into separate files for maintainability.
+ */
+
+/* Syntax Highlighting Styles for Code Blocks */
+.prose pre {
+  position: relative;
+  background-color: #1e293b; /* Softer dark gray */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #e2e8f0; /* Softer text color */
+  display: block;
+}
+
+/* Code block filename display */
+.prose pre[data-filename]::before {
+  content: attr(data-filename);
+  display: block;
+  padding: 0.5rem 1rem;
+  margin: -1rem -1rem 1rem -1rem;
+  background-color: #334155; /* Softer header background */
+  border-bottom: 1px solid #475569;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Inline code - improved visibility without backticks */
+.prose code {
+  background-color: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #e11d48;
+  border: 1px solid #e2e8f0;
+  font-weight: 500;
+}
+
+.prose pre code {
+  background-color: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-weight: 400;
+}
+
+/* Mermaid diagram styles */
+.prose .mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+/* Figure and image styles */
+.prose figure {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.prose figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.prose figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Copy button styles with opacity design */
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s ease-in-out;
+  backdrop-filter: blur(4px);
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.copy-btn.copied {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+  opacity: 1;
+}
+
+.copy-btn.copied::after {
+  content: ' ✓';
+}
+
+/* Responsive code blocks for mobile */
+@media (max-width: 640px) {
+  .prose pre {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    font-size: 0.8125rem;
+  }
+
+  .prose pre code {
+    font-size: 0.8125rem;
+  }
+
+  .copy-btn {
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+  }
+}

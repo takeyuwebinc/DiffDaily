@@ -1,0 +1,235 @@
+# DiffDaily
+
+GitHubリポジトリの変更を定点観測し、LLMを用いて技術者向けの要約記事を自動生成・投稿するブログプラットフォーム。
+
+**コンセプト**: "Deep & Concise" - コミットログの海から、重要な技術的変更だけを毎日お届けする。
+
+## 機能
+
+- GitHubリポジトリのPull Requestを監視
+- Claude Sonnet 4.5による技術記事の自動生成
+- Markdown形式の記事をデータベースに保存
+- TailwindCSSを使ったモダンなUI
+- Solid Queueによるジョブ管理
+
+## 技術スタック
+
+- **Framework**: Ruby on Rails 8.1.1
+- **Database**: SQLite3
+- **Job Queue**: Solid Queue
+- **CSS**: TailwindCSS
+- **LLM API**: Anthropic Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **GitHub API**: Octokit
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+bundle install
+```
+
+### 2. 環境変数の設定
+
+`.env.sample` をコピーして `.env` を作成します。
+
+```bash
+cp .env.sample .env
+```
+
+`.env` ファイルを編集して、以下の環境変数を設定してください。
+
+#### GitHub API Token の作成
+
+1. https://github.com/settings/tokens にアクセス
+2. "Generate new token" → "Generate new token (classic)" を選択
+3. 必要な権限（Scopes）を選択：
+   - **公開リポジトリのみ**: `public_repo` をチェック
+   - **プライベートリポジトリも含む**: `repo` をチェック
+4. "Generate token" をクリックしてトークンを生成
+5. 生成されたトークンをコピーして `.env` に設定
+
+**Fine-grained tokensを使用する場合**:
+- Repository permissions:
+  - Pull requests: `Read-only`
+  - Contents: `Read-only`
+  - Metadata: `Read-only` (自動付与)
+
+```bash
+# GitHub API Token (必須)
+GITHUB_ACCESS_TOKEN=your_github_token_here
+
+# Anthropic API Key (Claude Sonnet 4.5)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+```
+
+### 3. データベースのセットアップ
+
+```bash
+rails db:setup
+```
+
+これにより、`basecamp/kamal` リポジトリがデフォルトで登録されます。
+
+## 使い方
+
+### 開発サーバーの起動
+
+```bash
+bin/dev
+```
+
+ブラウザで `http://localhost:3000` にアクセスしてください。
+
+### ジョブの実行
+
+#### 特定のリポジトリの記事を生成
+
+Railsコンソールから手動でジョブを実行します。
+
+```bash
+rails console
+```
+
+```ruby
+# リポジトリ名を指定
+DailySummaryJob.perform_now("rails/rails")
+
+# またはリポジトリIDを指定
+DailySummaryJob.perform_now(1)
+```
+
+#### 全リポジトリをチェック
+
+登録されているすべてのリポジトリの更新をチェックします。
+
+```bash
+rails runner "DailyRepositoryCheckJob.perform_now"
+```
+
+### 定期実行（本番環境・開発環境）
+
+Solid Queueの定期実行機能を使って、自動で記事を生成できます。
+
+`config/recurring.yml` で設定されています：
+
+```yaml
+production:
+  # 完了したジョブのクリーンアップ（毎時12分）
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+
+  # 全リポジトリの日次チェック（毎朝6時）
+  daily_repository_check:
+    class: DailyRepositoryCheckJob
+    schedule: every day at 6am
+
+development:
+  # 開発環境でも日次チェックを実行（毎朝6時）
+  daily_repository_check:
+    class: DailyRepositoryCheckJob
+    schedule: every day at 6am
+```
+
+## プロジェクト構成
+
+```
+app/
+├── actions/                      # Actionパターン（単一責任の実行可能オブジェクト）
+│   ├── application_action.rb    # Action基底クラス
+│   ├── github/
+│   │   └── fetch_recent_changes.rb  # GitHub PR取得・フィルタリング
+│   └── content/
+│       └── generate_article.rb      # AI記事生成
+├── controllers/
+│   └── posts_controller.rb       # 記事の一覧・詳細表示
+├── jobs/
+│   ├── daily_summary_job.rb           # 特定リポジトリの日次要約ジョブ
+│   └── daily_repository_check_job.rb  # 全リポジトリの日次チェックジョブ
+├── models/
+│   ├── repository.rb             # リポジトリモデル
+│   └── post.rb                   # 記事モデル
+└── views/
+    ├── layouts/
+    │   └── application.html.erb  # レイアウト（ヘッダー含む）
+    └── posts/
+        ├── index.html.erb        # 記事一覧
+        └── show.html.erb         # 記事詳細
+```
+
+### Actionパターンについて
+
+DiffDailyでは、ビジネスロジックをActionパターンで実装しています。各Actionは単一の責任を持ち、`perform`メソッドで実行されます。
+
+- **Github::FetchRecentChanges**: GitHubのPull Requestsと差分を取得し、ノイズをフィルタリング
+- **Content::GenerateArticle**: PR情報からClaude Sonnet 4.5を使って技術記事を生成
+
+使用例:
+```ruby
+# Actionの実行（クラスメソッド）
+changes = Github::FetchRecentChanges.perform("basecamp/kamal", hours_ago: 24)
+
+# インスタンスメソッドとしても実行可能
+action = Content::GenerateArticle.new("basecamp/kamal", pr_data)
+article = action.perform
+model_name = action.model_name  # "Claude Sonnet 4.5"
+```
+
+## データモデル
+
+### Repository
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| name | string | リポジトリ名 (例: "basecamp/kamal") |
+| url | string | リポジトリURL |
+
+### Post
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| repository_id | integer | 関連リポジトリID |
+| title | string | 記事タイトル |
+| body | text | 記事本文（Markdown） |
+| source_url | string | 元となるPRのURL |
+| generated_by | string | 使用したLLMモデル名 |
+| published_at | datetime | 公開日時 |
+| status | enum | ステータス (draft/published/skipped) |
+
+## カスタマイズ
+
+### 新しいリポジトリの追加
+
+```ruby
+Repository.create!(
+  name: "owner/repository",
+  url: "https://github.com/owner/repository"
+)
+```
+
+### システムプロンプトのカスタマイズ
+
+記事生成のスタイルや内容を変更したい場合は、`app/actions/content/generate_article.rb` の `SYSTEM_PROMPT` を編集してください。
+
+```ruby
+# app/actions/content/generate_article.rb
+SYSTEM_PROMPT = <<~PROMPT
+  # Role
+  あなたは「DiffDaily」の専属ライターです...
+
+  # カスタマイズ例：
+  # - 記事のトーン（カジュアル/フォーマル）
+  # - 対象読者（初心者/上級者）
+  # - 記事の長さ
+  # - フィルタリング条件
+PROMPT
+```
+
+## ライセンス
+
+MIT
+
+## 貢献
+
+Pull Requestsを歓迎します。

@@ -1,0 +1,71 @@
+<% unless post.not_reviewed? %>
+  <div class="mt-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+    <div class="flex items-center mb-3">
+      <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <h3 class="text-sm font-semibold text-gray-800">品質レビュー結果</h3>
+    </div>
+
+    <dl class="text-sm text-gray-700 space-y-2">
+      <div class="flex items-center">
+        <dt class="font-medium w-32 text-gray-600">レビュー状態:</dt>
+        <dd>
+          <%= render partial: "posts/review_status_badge", locals: { status: post.review_status } %>
+        </dd>
+      </div>
+
+      <div class="flex">
+        <dt class="font-medium w-32 text-gray-600">レビュー回数:</dt>
+        <dd class="text-gray-700">
+          <%= post.review_attempts %>回
+          <% if post.review_attempts > 1 %>
+            <span class="text-xs text-gray-500">(改善を経て承認)</span>
+          <% end %>
+        </dd>
+      </div>
+
+      <% if post.approved_with_issues? && post.review_issues.present? %>
+        <div class="mt-3 pt-3 border-t border-green-200">
+          <dt class="font-medium text-gray-600 mb-2">検出された問題点:</dt>
+          <dd>
+            <ul class="space-y-2 text-xs">
+              <% post.review_issues.each_with_index do |issue, index| %>
+                <li class="bg-white/70 rounded p-2 border border-yellow-200">
+                  <div class="flex items-start">
+                    <span class="inline-block w-5 h-5 mr-2 flex-shrink-0">
+                      <% if issue["severity"] == "critical" %>
+                        <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                      <% else %>
+                        <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                      <% end %>
+                    </span>
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-700">
+                        <%= issue["category"]&.titleize %>
+                        <span class="ml-1 text-xs <%= issue["severity"] == "critical" ? "text-red-600" : "text-yellow-600" %>">
+                          (<%= issue["severity"]&.upcase %>)
+                        </span>
+                      </div>
+                      <p class="text-gray-600 mt-1"><%= issue["description"] %></p>
+                      <% if issue["suggestion"].present? %>
+                        <p class="text-gray-500 mt-1 italic">提案: <%= issue["suggestion"] %></p>
+                      <% end %>
+                    </div>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+            <p class="text-xs text-gray-600 mt-2 italic">
+              ※ 上記の問題は検出されましたが、記事は公開基準を満たしています
+            </p>
+          </dd>
+        </div>
+      <% end %>
+    </dl>
+  </div>
+<% end %>
