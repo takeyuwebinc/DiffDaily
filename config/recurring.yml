@@ -18,7 +18,15 @@ production:
     class: DailyRepositoryCheckJob
     schedule: every day at 6am
 
+  import_rails_repos:
+    class: ImportRailsReposJob
+    schedule: every day at 5am
+
 development:
   daily_repository_check:
     class: DailyRepositoryCheckJob
     schedule: every day at 6am
+
+  import_rails_repos:
+    class: ImportRailsReposJob
+    schedule: every day at 5am

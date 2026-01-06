@@ -1,0 +1,16 @@
+#!/bin/sh
+
+echo "Setting up Docker and storage directories on $KAMAL_HOSTS..."
+
+# Create storage directory with appropriate permissions
+# Container runs as UID 1000, so we need to ensure that user can write
+mkdir -p /var/lib/diffdaily/storage
+
+# Set ownership to UID 1000 (rails user in container)
+chown -R 1000:1000 /var/lib/diffdaily/storage
+
+# Set secure permissions: owner can read/write, group can read, others have no access
+chmod 750 /var/lib/diffdaily
+chmod 750 /var/lib/diffdaily/storage
+
+echo "Storage directory created at /var/lib/diffdaily/storage with UID 1000 ownership"
