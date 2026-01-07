@@ -41,3 +41,6 @@
 
 # Ignore Kamal secrets
 /.kamal/secrets
+
+# Ignore Google Cloud credentials
+/config/google-service-account.json

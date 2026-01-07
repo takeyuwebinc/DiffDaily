@@ -336,37 +336,87 @@ kamal deploy
 
 ### Vertex AI APIを使用する場合
 
-サーバー環境で地域制限エラーが発生する場合は、`config/deploy.yml`を編集：
+サーバー環境で地域制限エラーが発生する場合は、以下の手順でVertex AI APIを設定します。
+
+#### 1. サービスアカウントキーをサーバーにアップロード
+
+```bash
+# サーバー上でディレクトリを作成
+ssh user@100.117.198.73 "mkdir -p /var/lib/diffdaily/credentials && chmod 700 /var/lib/diffdaily/credentials"
+
+# ローカルからJSONキーファイルをアップロード
+scp diffdaily-vertex-ai-xxxxx.json user@100.117.198.73:/var/lib/diffdaily/credentials/google-credentials.json
+
+# パーミッション設定
+ssh user@100.117.198.73 "chmod 600 /var/lib/diffdaily/credentials/google-credentials.json"
+```
+
+#### 2. `config/deploy.yml`を編集
 
 ```yaml
 env:
   clear:
     GEMINI_SERVICE_TYPE: "vertex-ai-api"
-    GOOGLE_CLOUD_REGION: "us-central1"
-```
+    GOOGLE_CLOUD_REGION: "us-central1"  # または "asia-northeast1"
 
-サービスアカウントキーファイルをサーバーにアップロードし、パスを指定：
-
-```bash
-# サーバー上で
-mkdir -p /var/lib/diffdaily/credentials
-# ローカルからアップロード
-scp google-credentials.json user@server:/var/lib/diffdaily/credentials/
-```
-
-`config/deploy.yml`でボリュームマウント：
-
-```yaml
+# ボリュームマウントを追加
 volumes:
   - "/var/lib/diffdaily/storage:/rails/storage"
   - "/var/lib/diffdaily/credentials:/rails/credentials:ro"
 ```
 
-`.kamal/secrets`で認証情報パスを設定：
+#### 3. `.kamal/secrets`を編集
+
+コンテナ内のパスを指定：
 
 ```bash
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=/rails/credentials/google-credentials.json
 ```
+
+#### 4. デプロイ
+
+```bash
+kamal deploy
+```
+
+#### 代替方法: 環境変数として渡す
+
+JSONキーをbase64エンコードして環境変数として渡すこともできます：
+
+```bash
+# ローカルでbase64エンコード
+base64 -w 0 diffdaily-vertex-ai-xxxxx.json > credentials.b64
+
+# .kamal/secretsに追加
+GOOGLE_CREDENTIALS_BASE64=$(cat credentials.b64)
+```
+
+`config/deploy.yml`:
+```yaml
+env:
+  secret:
+    - GOOGLE_CREDENTIALS_BASE64
+```
+
+アプリケーション起動時にデコード（docker-entrypointなど）：
+```bash
+if [ -n "$GOOGLE_CREDENTIALS_BASE64" ]; then
+  echo "$GOOGLE_CREDENTIALS_BASE64" | base64 -d > /tmp/google-credentials.json
+  export GOOGLE_APPLICATION_CREDENTIALS=/tmp/google-credentials.json
+fi
+```
+
+⚠️ **注意**: この方法は環境変数のサイズ制限に注意が必要です。
+
+#### セキュリティのベストプラクティス
+
+- **パーミッション**: JSONキーファイルは`600`（所有者のみ読み書き可能）
+- **ディレクトリ**: 認証情報ディレクトリは`700`（所有者のみアクセス可能）
+- **読み取り専用マウント**: `:ro`フラグでコンテナ内を読み取り専用に
+- **バックアップ**: サーバー外に安全にバックアップを保管
+- **ローテーション**: 定期的にサービスアカウントキーをローテーション
+- **.gitignore**: JSONキーファイルは絶対にGitにコミットしない
 
 ### 便利なコマンド
 

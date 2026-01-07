@@ -83,6 +83,8 @@ aliases:
 # Recommended to change this to a mounted volume path that is backed up off server.
 volumes:
   - "/var/lib/diffdaily/storage:/rails/storage"
+  # Vertex AI credentials (read-only mount for security)
+  - "/var/lib/diffdaily/google-service-account.json:/rails/config/google-service-account.json:ro"
 
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
 # hitting 404 on in-flight requests. Combines all files from new and old
