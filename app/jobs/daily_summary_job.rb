@@ -47,7 +47,7 @@ class DailySummaryJob < ApplicationJob
     end
 
     # LLMで記事を生成（Claude Sonnet 4.5使用）
-    action = Content::GenerateArticle.new(repository.name, pr_data)
+    action = Content::GenerateArticle.new(repository.name, pr_data, repository_url: repository.url)
     result = action.perform
 
     if result.nil?

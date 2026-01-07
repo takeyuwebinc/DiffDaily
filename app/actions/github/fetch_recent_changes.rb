@@ -21,6 +21,7 @@ module Github
           body: pr[:body],
           url: pr[:html_url],
           merged_at: pr[:merged_at],
+          merge_commit_sha: pr[:merge_commit_sha],
           diff: fetch_diff(pr[:number])
         }
       end

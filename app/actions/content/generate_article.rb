@@ -59,6 +59,33 @@ module Content
 
       幅指定は `=300px` のように記述し、キャプションは画像の直後の行に `*` で囲んで記述します。
 
+      ## GitHubリンク記法
+      記事内でコミットID、プルリクエスト、イシューに言及する際は、以下の形式でリンクを作成してください。
+
+      ### コミットリンク
+      コミットIDは短縮形（先頭7文字）を使用し、完全なコミットURLへのリンクを設定します。
+
+      ```markdown
+      [2dc080f](https://github.com/rails/rails/commit/2dc080f2b4c49b00d773493975686d5762828c6f)
+      ```
+
+      ### プルリクエストリンク
+      PR番号には `#` を付けてリンクを設定します。
+
+      ```markdown
+      [#1234](https://github.com/rails/rails/pull/1234)
+      ```
+
+      ### イシューリンク
+      Issue番号には `#` を付けてリンクを設定します。
+
+      ```markdown
+      [#5678](https://github.com/rails/rails/issues/5678)
+      ```
+
+      重要: リポジトリのベースURLは、この記事の対象となっているリポジトリのURLを使用してください。
+      別のリポジトリのコミットやPR、Issueに言及する場合は、そのリポジトリの完全なURLを使用してください。
+
       # Output Format (JSON)
       記事と要約を以下のJSON形式で出力してください。
       コードブロック（```json）で囲まず、JSON形式のみを出力してください。
@@ -128,9 +155,10 @@ module Content
 
     attr_reader :model_name
 
-    def initialize(repository_name, pr_data)
+    def initialize(repository_name, pr_data, repository_url: nil)
       @repository_name = repository_name
       @pr_data = pr_data
+      @repository_url = repository_url
       @client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
       @model_name = MODEL_NAME
     end
@@ -183,6 +211,33 @@ module Content
 
     private
 
+    # GitHubリンクを生成するヘルパーメソッド群
+    def github_repo_base_url
+      return nil unless @repository_url
+
+      # https://github.com/owner/repo 形式から base URL を抽出
+      @repository_url.sub(/\.git$/, "").sub(/\/$/, "")
+    end
+
+    def format_commit_link(commit_sha)
+      return commit_sha unless github_repo_base_url
+
+      short_sha = commit_sha[0..6]
+      "[#{short_sha}](#{github_repo_base_url}/commit/#{commit_sha})"
+    end
+
+    def format_pr_link(pr_number)
+      return "##{pr_number}" unless github_repo_base_url
+
+      "[##{pr_number}](#{github_repo_base_url}/pull/#{pr_number})"
+    end
+
+    def format_issue_link(issue_number)
+      return "##{issue_number}" unless github_repo_base_url
+
+      "[##{issue_number}](#{github_repo_base_url}/issues/#{issue_number})"
+    end
+
     def build_system_prompt
       SYSTEM_PROMPT
         .gsub("<PR_NUMBER>", @pr_data[:number].to_s)
@@ -194,11 +249,13 @@ module Content
       base_prompt = <<~PROMPT
         # Repository
         #{@repository_name}
+        #{@repository_url ? "**Repository URL**: #{@repository_url}" : ""}
 
         # Pull Request Information
         **Title**: #{@pr_data[:title]}
         **URL**: #{@pr_data[:url]}
         **Number**: ##{@pr_data[:number]}
+        #{@pr_data[:merge_commit_sha] ? "**Merge Commit**: #{@pr_data[:merge_commit_sha]}" : ""}
 
         ## Description
         #{@pr_data[:body] || "No description provided."}
