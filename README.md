@@ -273,6 +273,75 @@ SYSTEM_PROMPT = <<~PROMPT
 PROMPT
 ```
 
+## デプロイ（Kamal）
+
+DiffDailyはKamalを使用してコンテナ化されたアプリケーションをデプロイします。
+
+### 初回デプロイ
+
+1. `.kamal/secrets`ファイルで環境変数を設定
+2. サーバーをセットアップ：
+
+```bash
+kamal setup
+```
+
+### 更新デプロイ
+
+```bash
+kamal deploy
+```
+
+### Vertex AI APIを使用する場合
+
+サーバー環境で地域制限エラーが発生する場合は、`config/deploy.yml`を編集：
+
+```yaml
+env:
+  clear:
+    GEMINI_SERVICE_TYPE: "vertex-ai-api"
+    GOOGLE_CLOUD_REGION: "us-central1"
+```
+
+サービスアカウントキーファイルをサーバーにアップロードし、パスを指定：
+
+```bash
+# サーバー上で
+mkdir -p /var/lib/diffdaily/credentials
+# ローカルからアップロード
+scp google-credentials.json user@server:/var/lib/diffdaily/credentials/
+```
+
+`config/deploy.yml`でボリュームマウント：
+
+```yaml
+volumes:
+  - "/var/lib/diffdaily/storage:/rails/storage"
+  - "/var/lib/diffdaily/credentials:/rails/credentials:ro"
+```
+
+`.kamal/secrets`で認証情報パスを設定：
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/rails/credentials/google-credentials.json
+```
+
+### 便利なコマンド
+
+```bash
+# コンソール接続
+kamal console
+
+# ログ確認
+kamal logs
+
+# シェル接続
+kamal shell
+
+# 環境変数確認
+kamal app exec "env | grep GEMINI"
+```
+
 ## ライセンス
 
 MIT

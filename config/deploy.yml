@@ -43,8 +43,16 @@ env:
     - GITHUB_ACCESS_TOKEN
     - ANTHROPIC_API_KEY
     - GEMINI_API_KEY
+    # Vertex AI credentials (optional - for production environments with location restrictions)
+    - GOOGLE_CLOUD_PROJECT_ID
+    - GOOGLE_APPLICATION_CREDENTIALS
   clear:
     TZ: "Asia/Tokyo"
+    # Gemini API configuration
+    GEMINI_SERVICE_TYPE: "generative-language-api"  # or "vertex-ai-api" for production
+    GOOGLE_CLOUD_REGION: "us-central1"  # or "asia-northeast1" for Tokyo region
+    # Article review feature (set to "false" to disable)
+    ENABLE_ARTICLE_REVIEW: "true"
   
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
