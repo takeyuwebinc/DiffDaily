@@ -49,7 +49,7 @@ env:
   clear:
     TZ: "Asia/Tokyo"
     # Gemini API configuration
-    GEMINI_SERVICE_TYPE: "generative-language-api"  # or "vertex-ai-api" for production
+    GEMINI_SERVICE_TYPE: "vertex-ai-api"  # or "generative-language-api" for production
     GOOGLE_CLOUD_REGION: "us-central1"  # or "asia-northeast1" for Tokyo region
     # Article review feature (set to "false" to disable)
     ENABLE_ARTICLE_REVIEW: "true"
