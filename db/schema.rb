@@ -32,7 +32,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_073516) do
     t.integer "repository_id", null: false
     t.integer "review_attempts", default: 0, null: false
     t.json "review_details"
-    t.json "review_issues"
+    t.json "review_issues", default: [], null: false
     t.string "review_status", default: "not_reviewed", null: false
     t.string "reviewer_model"
     t.string "source_url"
