@@ -58,6 +58,14 @@
       </div>
     </header>
 
+    <% if @post.source_url.present? %>
+      <div class="mb-8" data-controller="link-card" data-link-card-url-value="<%= @post.source_url %>" data-link-card-label-value="記事のソース">
+        <a href="<%= @post.source_url %>" target="_blank" rel="noopener" class="text-blue-600 hover:underline">
+          <%= @post.source_url %>
+        </a>
+      </div>
+    <% end %>
+
     <div class="prose prose-zinc prose-lg max-w-none mb-8" data-controller="syntax-highlight">
       <%= @post.to_html %>
     </div>

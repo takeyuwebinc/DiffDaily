@@ -13,4 +13,11 @@ Rails.application.routes.draw do
   root "posts#index"
 
   resources :posts, only: [:index, :show]
+
+  # API routes
+  namespace :api do
+    resource :link_cards, only: [] do
+      get :metadata, on: :collection
+    end
+  end
 end

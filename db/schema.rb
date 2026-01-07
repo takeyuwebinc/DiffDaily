@@ -10,7 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_06_175312) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_07_022128) do
+  create_table "link_metadata", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "domain"
+    t.string "favicon"
+    t.string "image_url"
+    t.datetime "last_fetched_at"
+    t.text "title"
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.index ["url"], name: "index_link_metadata_on_url", unique: true
+  end
+
   create_table "posts", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
