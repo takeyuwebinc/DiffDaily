@@ -12,8 +12,8 @@ module CustomMarkdownExtensions
   # @return [void]
   def self.register_extensions(renderer)
     LinkCardExtension.register(renderer)
-    MermaidExtension.register(renderer)
     ImageExtension.register(renderer)
+    # SyntaxHighlightExtension includes Mermaid support
     SyntaxHighlightExtension.register(renderer)
   end
 
@@ -222,7 +222,14 @@ module CustomMarkdownExtensions
       original_block_code = renderer.method(:block_code) if renderer.respond_to?(:block_code)
 
       renderer.define_singleton_method(:block_code) do |code, language|
-        if language.present? && language != "mermaid"
+        # mermaidの場合は特別処理
+        if language == "mermaid"
+          escaped_code = CGI.escapeHTML(code)
+          %(<div class="mermaid-diagram" data-controller="mermaid">
+                <pre class="mermaid-source hidden">#{escaped_code}</pre>
+                <div class="mermaid-render"></div>
+              </div>)
+        elsif language.present?
           # 言語とファイル名を分離
           lang, filename = SyntaxHighlightExtension.parse_language_and_filename(language)
 
@@ -238,12 +245,7 @@ module CustomMarkdownExtensions
         else
           # デフォルトのコードブロック生成
           escaped_code = CGI.escapeHTML(code)
-          if language && !language.empty?
-            escaped_language = CGI.escapeHTML(language)
-            %(<pre><code class="language-#{escaped_language}">#{escaped_code}</code></pre>)
-          else
-            %(<pre><code>#{escaped_code}</code></pre>)
-          end
+          %(<pre><code>#{escaped_code}</code></pre>)
         end
       end
     end

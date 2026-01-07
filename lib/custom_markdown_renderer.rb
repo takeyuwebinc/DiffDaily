@@ -70,7 +70,7 @@ class CustomMarkdownRenderer
     href target rel
     src alt width height style
     class id
-    data-controller data-action data-target
+    data-controller data-action data-target data-filename
   ].freeze
 
   # data-*属性も許可する
