@@ -90,9 +90,25 @@ GEMINI_SERVICE_TYPE=generative-language-api
 
 地域制限がなく、本番環境に適しています。
 
-1. Google Cloud Consoleで新しいプロジェクトを作成: https://console.cloud.google.com/
-2. Vertex AI APIを有効化
-3. サービスアカウントを作成して認証情報（JSONキー）をダウンロード
+1. **Google Cloud Consoleで新しいプロジェクトを作成**: https://console.cloud.google.com/
+
+2. **必要なAPIライブラリを有効化**:
+   - Vertex AI API: https://console.cloud.google.com/apis/library/aiplatform.googleapis.com
+   - Cloud Resource Manager API: https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com
+
+   または、gcloudコマンドで有効化：
+   ```bash
+   gcloud services enable aiplatform.googleapis.com
+   gcloud services enable cloudresourcemanager.googleapis.com
+   ```
+
+3. **サービスアカウントを作成**:
+   - IAM & Admin > サービスアカウント: https://console.cloud.google.com/iam-admin/serviceaccounts
+   - 「サービスアカウントを作成」をクリック
+   - 名前: `diffdaily-vertex-ai`
+   - ロール: `Vertex AI ユーザー` を付与
+   - JSONキーを作成してダウンロード
+
 4. `.env` に設定：
 
 ```bash
@@ -108,6 +124,32 @@ GEMINI_SERVICE_TYPE=vertex-ai-api
 
 ```bash
 ENABLE_ARTICLE_REVIEW=false
+```
+
+**トラブルシューティング**
+
+Vertex AI API使用時のよくあるエラー：
+
+- **403 Permission Denied**: サービスアカウントに適切なロールが付与されていません
+  - 解決: `Vertex AI ユーザー` ロールを追加
+
+- **403 API not enabled**: APIライブラリが有効化されていません
+  - 解決: Vertex AI APIとCloud Resource Manager APIを有効化
+
+- **認証情報が見つからない**: 環境変数が正しく設定されていません
+  - 確認: `GOOGLE_APPLICATION_CREDENTIALS` のパスが正しいか確認
+  - 確認: JSONキーファイルが存在するか確認
+
+確認コマンド：
+```bash
+# プロジェクトIDの確認
+gcloud config get-value project
+
+# 有効化されているAPIの確認
+gcloud services list --enabled | grep -E "aiplatform|cloudresourcemanager"
+
+# サービスアカウントの確認
+gcloud iam service-accounts list
 ```
 
 ### 3. データベースのセットアップ
