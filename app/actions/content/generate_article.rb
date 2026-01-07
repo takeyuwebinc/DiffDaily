@@ -369,13 +369,7 @@ module Content
       @repository_url = repository_url
       @merged_at = pr_data[:merged_at] # PRのマージ日時を保存
       @claude_client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
-      @gemini_client = Gemini.new(
-        credentials: {
-          service: "generative-language-api",
-          api_key: ENV["GEMINI_API_KEY"]
-        },
-        options: { model: "gemini-2.5-pro", server_sent_events: true }
-      )
+      @gemini_client = initialize_gemini_client
       @model_name = MODEL_NAME
     end
 
@@ -439,6 +433,46 @@ module Content
     end
 
     private
+
+    def initialize_gemini_client
+      service_type = ENV.fetch("GEMINI_SERVICE_TYPE", "generative-language-api")
+
+      case service_type
+      when "vertex-ai-api"
+        # Vertex AI API を使用（地域制限なし）
+        project_id = ENV["GOOGLE_CLOUD_PROJECT_ID"]
+        region = ENV.fetch("GOOGLE_CLOUD_REGION", "us-central1")
+        credentials_path = ENV["GOOGLE_APPLICATION_CREDENTIALS"]
+
+        if project_id.nil? || credentials_path.nil?
+          Rails.logger.warn("Vertex AI credentials not configured. Falling back to Generative Language API.")
+          initialize_generative_language_client
+        else
+          Gemini.new(
+            credentials: {
+              service: "vertex-ai-api",
+              region: region,
+              project_id: project_id,
+              file_path: credentials_path
+            },
+            options: { model: "gemini-2.5-pro", server_sent_events: false }
+          )
+        end
+      else
+        # Generative Language API を使用（API Key）
+        initialize_generative_language_client
+      end
+    end
+
+    def initialize_generative_language_client
+      Gemini.new(
+        credentials: {
+          service: "generative-language-api",
+          api_key: ENV["GEMINI_API_KEY"]
+        },
+        options: { model: "gemini-2.5-pro", server_sent_events: false }
+      )
+    end
 
     # GitHubリンクを生成するヘルパーメソッド群
     def github_repo_base_url
@@ -551,7 +585,7 @@ module Content
       retry_count = 0
 
       begin
-        result = @gemini_client.stream_generate_content({
+        result = @gemini_client.generate_content({
           contents: { role: "user", parts: { text: full_prompt } },
           generationConfig: {
             maxOutputTokens: 8192,  # Gemini 2.5 Proの最大出力トークン数
@@ -559,8 +593,8 @@ module Content
           }
         })
 
-        # レスポンスからテキストを抽出
-        response_text = extract_gemini_response_text(result)
+        # レスポンスからテキストを抽出（非ストリーミング版）
+        response_text = result.dig("candidates", 0, "content", "parts", 0, "text") || ""
 
         # レスポンスをパース
         parsed_result = parse_review_response(response_text)
@@ -569,10 +603,27 @@ module Content
       rescue Faraday::BadRequestError => e
         # 400エラーの詳細をログに記録
         Rails.logger.error("Gemini API 400 Bad Request error: #{e.message}")
-        Rails.logger.error("Response body: #{e.response[:body]}")
-        Rails.logger.error(e.backtrace.join("\n"))
+        if e.response
+          Rails.logger.error("Response status: #{e.response[:status]}")
+          Rails.logger.error("Response body: #{e.response[:body]}")
+          Rails.logger.error("Response headers: #{e.response[:headers]}")
+        end
+        Rails.logger.error("Backtrace: #{e.backtrace.first(5).join("\n")}")
+
+        # エラーの詳細を解析
+        error_detail = "Unknown error"
+        if e.response && e.response[:body]
+          begin
+            error_body = JSON.parse(e.response[:body])
+            error_detail = error_body.dig("error", "message") || error_body.to_s
+            Rails.logger.error("Parsed error: #{error_detail}")
+          rescue JSON::ParserError
+            error_detail = e.response[:body][0..500]
+          end
+        end
+
         # 400エラーの場合は承認として扱う（精査機能の障害で記事生成を止めない）
-        { approved: true, issues: [], overall_feedback: "Review error: Bad Request (400)", raw_response: {}, reviewer_model: "Review Error" }
+        { approved: true, issues: [], overall_feedback: "Review error: Bad Request (400) - #{error_detail}", raw_response: {}, reviewer_model: "Review Error" }
       rescue Faraday::TooManyRequestsError => e
         retry_count += 1
         if retry_count < max_api_retries
