@@ -18,7 +18,9 @@ GitHubリポジトリの変更を定点観測し、LLMを用いて技術者向�
 - **Database**: SQLite3
 - **Job Queue**: Solid Queue
 - **CSS**: TailwindCSS
-- **LLM API**: Anthropic Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **LLM API**:
+  - Anthropic Claude Sonnet 4.5 (記事生成)
+  - Google Gemini 2.5 Pro (品質レビュー)
 - **GitHub API**: Octokit
 
 ## セットアップ
@@ -59,8 +61,53 @@ cp .env.sample .env
 # GitHub API Token (必須)
 GITHUB_ACCESS_TOKEN=your_github_token_here
 
-# Anthropic API Key (Claude Sonnet 4.5)
+# Anthropic API Key (Claude Sonnet 4.5) - 記事生成用
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Google Gemini API Key - 記事品質レビュー用（オプション）
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_SERVICE_TYPE=generative-language-api
+```
+
+#### Gemini API の設定（記事レビュー機能）
+
+記事の品質レビュー機能にはGoogle Gemini 2.5 Proを使用します。以下の2つの方法があります：
+
+**Option 1: Generative Language API（簡単・開発用）**
+
+1. https://aistudio.google.com/app/apikey にアクセス
+2. "Create API Key" をクリックしてAPIキーを生成
+3. `.env` に設定：
+
+```bash
+GEMINI_API_KEY=your_api_key_here
+GEMINI_SERVICE_TYPE=generative-language-api
+```
+
+⚠️ **注意**: Generative Language APIは地域制限があります。一部のサーバー環境では `User location is not supported` エラーが発生する可能性があります。
+
+**Option 2: Vertex AI API（本番環境推奨）**
+
+地域制限がなく、本番環境に適しています。
+
+1. Google Cloud Consoleで新しいプロジェクトを作成: https://console.cloud.google.com/
+2. Vertex AI APIを有効化
+3. サービスアカウントを作成して認証情報（JSONキー）をダウンロード
+4. `.env` に設定：
+
+```bash
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
+GOOGLE_CLOUD_REGION=us-central1  # または asia-northeast1 (東京)
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+GEMINI_SERVICE_TYPE=vertex-ai-api
+```
+
+**レビュー機能の無効化**
+
+レビュー機能が不要な場合は、環境変数で無効化できます：
+
+```bash
+ENABLE_ARTICLE_REVIEW=false
 ```
 
 ### 3. データベースのセットアップ
