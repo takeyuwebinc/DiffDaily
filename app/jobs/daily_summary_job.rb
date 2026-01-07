@@ -57,12 +57,14 @@ class DailySummaryJob < ApplicationJob
       return
     end
 
-    # resultはハッシュ形式: { article: "...", summary: "...", review_status: "...", review_attempts: N, review_issues: [...] }
+    # resultはハッシュ形式: { article: "...", summary: "...", review_status: "...", review_attempts: N, review_issues: [...], reviewer_model: "...", review_details: {...} }
     article_content = result[:article]
     summary = result[:summary]
     review_status = result[:review_status]
     review_attempts = result[:review_attempts]
     review_issues = result[:review_issues]
+    reviewer_model = result[:reviewer_model]
+    review_details = result[:review_details]
 
     # タイトルを記事の最初の行から抽出（# で始まる行）
     title = extract_title(article_content, pr_data[:title])
@@ -78,7 +80,9 @@ class DailySummaryJob < ApplicationJob
       status: :published,
       review_status: review_status,
       review_attempts: review_attempts,
-      review_issues: review_issues
+      review_issues: review_issues,
+      reviewer_model: reviewer_model,
+      review_details: review_details
     )
 
     Rails.logger.info "Created post ##{post.id}: #{post.title}"

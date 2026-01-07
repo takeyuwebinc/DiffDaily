@@ -15,9 +15,6 @@ class Post < ApplicationRecord
   validates :review_status, presence: true
   validates :review_attempts, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
-  # review_issuesをJSON形式で保存
-  serialize :review_issues, coder: JSON
-
   scope :published, -> { where(status: :published).order(published_at: :desc) }
   scope :recent, -> { order(created_at: :desc) }
 

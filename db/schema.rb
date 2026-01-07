@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_07_022128) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_07_073516) do
   create_table "link_metadata", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
@@ -31,8 +31,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_022128) do
     t.datetime "published_at"
     t.integer "repository_id", null: false
     t.integer "review_attempts", default: 0, null: false
-    t.text "review_issues"
+    t.json "review_details"
+    t.json "review_issues"
     t.string "review_status", default: "not_reviewed", null: false
+    t.string "reviewer_model"
     t.string "source_url"
     t.string "status", default: "draft", null: false
     t.text "summary"

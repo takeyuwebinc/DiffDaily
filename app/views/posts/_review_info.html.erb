@@ -1,5 +1,5 @@
 <% unless post.not_reviewed? %>
-  <div class="mt-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+  <div class="mt-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-5 border border-green-200">
     <div class="flex items-center mb-3">
       <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -8,15 +8,15 @@
     </div>
 
     <dl class="text-sm text-gray-700 space-y-2">
-      <div class="flex items-center">
-        <dt class="font-medium w-32 text-gray-600">レビュー状態:</dt>
+      <div class="flex">
+        <dt class="font-medium w-32 text-gray-600">Review Status:</dt>
         <dd>
           <%= render partial: "posts/review_status_badge", locals: { status: post.review_status } %>
         </dd>
       </div>
 
       <div class="flex">
-        <dt class="font-medium w-32 text-gray-600">レビュー回数:</dt>
+        <dt class="font-medium w-32 text-gray-600">Review Count:</dt>
         <dd class="text-gray-700">
           <%= post.review_attempts %>回
           <% if post.review_attempts > 1 %>
@@ -25,45 +25,124 @@
         </dd>
       </div>
 
+      <% if post.reviewer_model.present? %>
+        <div class="flex">
+          <dt class="font-medium w-32 text-gray-600">Reviewed by:</dt>
+          <dd class="text-gray-700"><%= post.reviewer_model %> for DiffDaily</dd>
+        </div>
+      <% end %>
+
+      <% if post.review_details.present? && post.review_details.is_a?(Hash) %>
+        <div class="mt-4 pt-4 border-t border-green-200">
+          <h4 class="font-medium text-gray-600 mb-3 text-sm">Review Criteria:</h4>
+          <div class="space-y-3">
+              <% Array(post.review_details[:criteria] || post.review_details["criteria"]).each do |criterion| %>
+                <% criterion_key = criterion[:key] || criterion["key"] %>
+                <% issues_for_criterion = (post.review_details[:evaluation] || post.review_details["evaluation"] || {}).fetch(criterion_key.to_sym, []) rescue [] %>
+                <% status = criterion[:status] || criterion["status"] || "unknown" %>
+                <% feedback = criterion[:feedback] || criterion["feedback"] %>
+                <%
+                  border_color = case status
+                  when "pass" then "border-green-200"
+                  when "warning" then "border-yellow-200"
+                  when "fail" then "border-red-200"
+                  else "border-gray-200"
+                  end
+                %>
+                <div class="bg-white/70 rounded p-3 border <%= border_color %>">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-800 flex items-center text-sm">
+                        <%= criterion[:name] || criterion["name"] %>
+                        <% case status %>
+                        <% when "pass" %>
+                          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            ✓ PASS
+                          </span>
+                        <% when "warning" %>
+                          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            ⚠ WARNING
+                          </span>
+                        <% when "fail" %>
+                          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            ✗ FAIL
+                          </span>
+                        <% else %>
+                          <% if issues_for_criterion.any? %>
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <%= issues_for_criterion.count %>件の指摘
+                            </span>
+                          <% else %>
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              ✓ OK
+                            </span>
+                          <% end %>
+                        <% end %>
+                      </div>
+                      <p class="text-gray-600 mt-1 text-xs"><%= criterion[:description] || criterion["description"] %></p>
+
+                      <% if feedback.present? %>
+                        <div class="mt-2 p-2 bg-blue-50/50 border border-blue-100 rounded">
+                          <p class="text-gray-700 text-xs"><%= feedback %></p>
+                        </div>
+                      <% end %>
+
+                      <% sub_criteria = criterion[:sub_criteria] || criterion["sub_criteria"] %>
+                      <% if sub_criteria.present? %>
+                        <ul class="mt-2 ml-3 space-y-0.5 text-xs">
+                          <% Array(sub_criteria).each do |sub| %>
+                            <li class="text-gray-500 flex items-start">
+                              <span class="mr-1">•</span>
+                              <span><%= sub %></span>
+                            </li>
+                          <% end %>
+                        </ul>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+        </div>
+      <% end %>
+
       <% if post.approved_with_issues? && post.review_issues.present? %>
-        <div class="mt-3 pt-3 border-t border-green-200">
-          <dt class="font-medium text-gray-600 mb-2">検出された問題点:</dt>
-          <dd>
-            <ul class="space-y-2 text-xs">
+        <div class="mt-4 pt-4 border-t border-green-200">
+          <h4 class="font-medium text-gray-600 mb-3 text-sm">Detected Issues:</h4>
+          <ul class="space-y-2">
               <% post.review_issues.each_with_index do |issue, index| %>
-                <li class="bg-white/70 rounded p-2 border border-yellow-200">
+                <li class="bg-white/70 rounded p-3 border border-yellow-200">
                   <div class="flex items-start">
-                    <span class="inline-block w-5 h-5 mr-2 flex-shrink-0">
+                    <span class="inline-block w-4 h-4 mr-2 flex-shrink-0 mt-0.5">
                       <% if issue["severity"] == "critical" %>
-                        <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                         </svg>
                       <% else %>
-                        <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                       <% end %>
                     </span>
                     <div class="flex-1">
-                      <div class="font-medium text-gray-700">
+                      <div class="font-medium text-gray-700 text-sm">
                         <%= issue["category"]&.titleize %>
                         <span class="ml-1 text-xs <%= issue["severity"] == "critical" ? "text-red-600" : "text-yellow-600" %>">
                           (<%= issue["severity"]&.upcase %>)
                         </span>
                       </div>
-                      <p class="text-gray-600 mt-1"><%= issue["description"] %></p>
+                      <p class="text-gray-600 mt-1 text-xs"><%= issue["description"] %></p>
                       <% if issue["suggestion"].present? %>
-                        <p class="text-gray-500 mt-1 italic">提案: <%= issue["suggestion"] %></p>
+                        <p class="text-gray-500 mt-1 text-xs italic">提案: <%= issue["suggestion"] %></p>
                       <% end %>
                     </div>
                   </div>
                 </li>
               <% end %>
             </ul>
-            <p class="text-xs text-gray-600 mt-2 italic">
+            <p class="text-xs text-gray-600 mt-3 bg-white/50 rounded p-2 border border-green-100 italic">
               ※ 上記の問題は検出されましたが、記事は公開基準を満たしています
             </p>
-          </dd>
         </div>
       <% end %>
     </dl>

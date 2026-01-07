@@ -132,6 +132,20 @@ module Content
 
     {
       "approved": true/false,
+      "criteria_evaluation": {
+        "guideline": {
+          "status": "pass" | "warning" | "fail",
+          "feedback": "この観点についての具体的な評価コメント"
+        },
+        "technical": {
+          "status": "pass" | "warning" | "fail",
+          "feedback": "この観点についての具体的な評価コメント"
+        },
+        "pr_consistency": {
+          "status": "pass" | "warning" | "fail",
+          "feedback": "この観点についての具体的な評価コメント"
+        }
+      },
       "issues": [
         {
           "category": "guideline" | "technical" | "pr_consistency",
@@ -140,17 +154,22 @@ module Content
           "suggestion": "修正提案"
         }
       ],
-      "overall_feedback": "総合的なフィードバック（承認の場合は空文字列でも可）"
+      "overall_feedback": "総合的なフィードバック"
     }
 
     重要な注意事項:
     - JSON形式のみを出力し、```json や ``` などのマークダウンコードブロック記法は使用しないこと
     - approved: 記事が承認できる品質の場合はtrue、修正が必要な場合はfalse
+    - criteria_evaluation: 各観点について必ず評価を記載すること
+      - status: "pass"（問題なし）、"warning"（改善推奨）、"fail"（修正必須）
+      - feedback: 問題がない場合でも良い点や評価ポイントを記載する
     - issues: 問題が見つかった場合のみ配列に追加（承認の場合は空配列）
     - severity: critical（修正必須）、warning（推奨改善）
+    - overall_feedback: 全体的な評価と総評を必ず記載する
   PROMPT
 
   MODEL_NAME = "Claude Sonnet 4.5"
+  REVIEWER_MODEL_NAME = "Claude Sonnet 4.5"
   MAX_RETRY_COUNT = 2
 
     attr_reader :model_name
@@ -323,11 +342,13 @@ module Content
       )
 
       # レスポンスをパース
-      parse_review_response(response.content[0].text)
+      result = parse_review_response(response.content[0].text)
+      result[:reviewer_model] = REVIEWER_MODEL_NAME
+      result
     rescue StandardError => e
       Rails.logger.error("Article review failed: #{e.message}")
       # エラー時は承認として扱う（精査機能の障害で記事生成を止めない）
-      { approved: true, issues: [], overall_feedback: "Review error occurred" }
+      { approved: true, issues: [], overall_feedback: "Review error occurred", raw_response: {}, reviewer_model: "Review Error" }
     end
 
     def build_review_prompt(article_result)
@@ -368,13 +389,14 @@ module Content
       {
         approved: parsed["approved"],
         issues: parsed["issues"] || [],
-        overall_feedback: parsed["overall_feedback"] || ""
+        overall_feedback: parsed["overall_feedback"] || "",
+        raw_response: parsed # 詳細情報を保持
       }
     rescue JSON::ParserError => e
       Rails.logger.error("Failed to parse review response: #{e.message}")
       Rails.logger.error("Response text (first 500 chars): #{response[0..500]}")
       # パースエラー時は承認として扱う
-      { approved: true, issues: [], overall_feedback: "Parse error occurred" }
+      { approved: true, issues: [], overall_feedback: "Parse error occurred", raw_response: {} }
     end
 
     def format_feedback(review_result)
@@ -399,10 +421,15 @@ module Content
       # レビューステータスを決定
       review_status = determine_review_status(retry_count, approved)
 
+      # レビュー観点の詳細情報を構築
+      review_details = build_review_details(review_result)
+
       article_result.merge(
         review_status: review_status,
         review_attempts: retry_count + 1, # 初回も1回とカウント
-        review_issues: review_result[:issues]
+        review_issues: review_result[:issues],
+        reviewer_model: review_result[:reviewer_model],
+        review_details: review_details
       )
     end
 
@@ -414,6 +441,65 @@ module Content
       else
         "approved_with_issues"
       end
+    end
+
+    def build_review_details(review_result)
+      # レビュー観点の詳細情報を構築
+      criteria_evaluation = review_result.dig(:raw_response, "criteria_evaluation") || {}
+
+      {
+        criteria: [
+          {
+            name: "ガイドライン準拠",
+            key: "guideline",
+            description: "記事構成とDiffDaily Styleへの準拠状況",
+            sub_criteria: [
+              "記事構成(Title、Context、Technical Detail)",
+              "DiffDaily Styleガイド準拠",
+              "カスタムMarkdown活用",
+              "対象読者への適合性"
+            ],
+            status: criteria_evaluation.dig("guideline", "status") || "unknown",
+            feedback: criteria_evaluation.dig("guideline", "feedback") || ""
+          },
+          {
+            name: "技術的整合性",
+            key: "technical",
+            description: "技術的な正確性と表現の適切性",
+            sub_criteria: [
+              "技術用語の正確性",
+              "コード例の正確性",
+              "説明の技術的正確性"
+            ],
+            status: criteria_evaluation.dig("technical", "status") || "unknown",
+            feedback: criteria_evaluation.dig("technical", "feedback") || ""
+          },
+          {
+            name: "PR内容との整合性",
+            key: "pr_consistency",
+            description: "元のPR情報との一致度",
+            sub_criteria: [
+              "タイトル・説明の一致",
+              "Diff内容の正確な反映",
+              "推測の排除"
+            ],
+            status: criteria_evaluation.dig("pr_consistency", "status") || "unknown",
+            feedback: criteria_evaluation.dig("pr_consistency", "feedback") || ""
+          }
+        ],
+        evaluation: categorize_issues_by_criteria(review_result[:issues]),
+        overall_feedback: review_result[:overall_feedback],
+        approved: review_result[:approved]
+      }
+    end
+
+    def categorize_issues_by_criteria(issues)
+      # 観点別に問題を分類
+      {
+        guideline: issues.select { |i| i["category"] == "guideline" },
+        technical: issues.select { |i| i["category"] == "technical" },
+        pr_consistency: issues.select { |i| i["category"] == "pr_consistency" }
+      }
     end
 
     def parse_response(response)
