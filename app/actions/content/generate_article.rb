@@ -169,8 +169,9 @@ module Content
   PROMPT
 
   MODEL_NAME = "Claude Sonnet 4.5"
-  REVIEWER_MODEL_NAME = "Claude Sonnet 4.5"
+  REVIEWER_MODEL_NAME = "Gemini 2.5 Pro"  # 実際のモデル: gemini-2.5-pro
   MAX_RETRY_COUNT = 2
+  ENABLE_REVIEW = ENV.fetch("ENABLE_ARTICLE_REVIEW", "true") == "true"
 
     attr_reader :model_name
 
@@ -178,7 +179,14 @@ module Content
       @repository_name = repository_name
       @pr_data = pr_data
       @repository_url = repository_url
-      @client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
+      @claude_client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
+      @gemini_client = Gemini.new(
+        credentials: {
+          service: "generative-language-api",
+          api_key: ENV["GEMINI_API_KEY"]
+        },
+        options: { model: "gemini-2.5-pro", server_sent_events: true }
+      )
       @model_name = MODEL_NAME
     end
 
@@ -199,6 +207,19 @@ module Content
 
         # JSON形式のレスポンスをパース
         article_result = parse_response(response)
+
+        # レビュー機能が無効な場合はレビューをスキップ
+        unless ENABLE_REVIEW
+          Rails.logger.info("Article review is disabled (ENABLE_ARTICLE_REVIEW=false)")
+          review_result = {
+            approved: true,
+            issues: [],
+            overall_feedback: "Review skipped (disabled)",
+            raw_response: {},
+            reviewer_model: "Review Disabled"
+          }
+          return build_result(article_result, 0, review_result, approved: true)
+        end
 
         # 記事精査
         review_result = review_article(article_result)
@@ -315,7 +336,7 @@ module Content
     end
 
     def generate_content(system_prompt, user_prompt)
-      response = @client.messages.create(
+      response = @claude_client.messages.create(
         model: "claude-sonnet-4-5-20250929",
         system_: system_prompt,
         messages: [
@@ -331,24 +352,43 @@ module Content
       # 記事精査用のプロンプトを構築
       review_user_prompt = build_review_prompt(article_result)
 
-      # AI APIで精査を実行
-      response = @client.messages.create(
-        model: "claude-sonnet-4-5-20250929",
-        system_: REVIEW_PROMPT,
-        messages: [
-          { role: "user", content: review_user_prompt }
-        ],
-        max_tokens: 2048
-      )
+      # Gemini APIで精査を実行（リトライ付き）
+      full_prompt = "#{REVIEW_PROMPT}\n\n#{review_user_prompt}"
 
-      # レスポンスをパース
-      result = parse_review_response(response.content[0].text)
-      result[:reviewer_model] = REVIEWER_MODEL_NAME
-      result
-    rescue StandardError => e
-      Rails.logger.error("Article review failed: #{e.message}")
-      # エラー時は承認として扱う（精査機能の障害で記事生成を止めない）
-      { approved: true, issues: [], overall_feedback: "Review error occurred", raw_response: {}, reviewer_model: "Review Error" }
+      max_api_retries = 3
+      retry_count = 0
+
+      begin
+        result = @gemini_client.stream_generate_content({
+          contents: { role: "user", parts: { text: full_prompt } }
+        })
+
+        # レスポンスからテキストを抽出
+        response_text = extract_gemini_response_text(result)
+
+        # レスポンスをパース
+        parsed_result = parse_review_response(response_text)
+        parsed_result[:reviewer_model] = REVIEWER_MODEL_NAME
+        parsed_result
+      rescue Faraday::TooManyRequestsError => e
+        retry_count += 1
+        if retry_count < max_api_retries
+          wait_time = retry_count * 2 # 2秒、4秒、6秒と待機時間を増やす
+          Rails.logger.warn("Gemini API rate limit hit (attempt #{retry_count}/#{max_api_retries}). Retrying in #{wait_time} seconds...")
+          sleep(wait_time)
+          retry
+        else
+          Rails.logger.error("Gemini API rate limit exceeded after #{max_api_retries} retries")
+          Rails.logger.error(e.backtrace.join("\n"))
+          # リトライ上限に達したら承認として扱う
+          { approved: true, issues: [], overall_feedback: "Review error: Rate limit exceeded", raw_response: {}, reviewer_model: "Review Error" }
+        end
+      rescue StandardError => e
+        Rails.logger.error("Article review failed: #{e.message}")
+        Rails.logger.error(e.backtrace.join("\n"))
+        # エラー時は承認として扱う（精査機能の障害で記事生成を止めない）
+        { approved: true, issues: [], overall_feedback: "Review error occurred", raw_response: {}, reviewer_model: "Review Error" }
+      end
     end
 
     def build_review_prompt(article_result)
@@ -373,6 +413,21 @@ module Content
 
         上記の情報を基に、生成された記事を精査してください。
       PROMPT
+    end
+
+    def extract_gemini_response_text(result)
+      # Gemini APIのストリーミングレスポンスからテキストを抽出
+      text_parts = []
+
+      result.each do |event|
+        if event.dig("candidates", 0, "content", "parts")
+          event.dig("candidates", 0, "content", "parts").each do |part|
+            text_parts << part["text"] if part["text"]
+          end
+        end
+      end
+
+      text_parts.join
     end
 
     def parse_review_response(response)

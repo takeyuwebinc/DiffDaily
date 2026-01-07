@@ -35,10 +35,20 @@ RSpec.describe Content::GenerateArticle, type: :action do
   describe "#perform" do
     let(:anthropic_client) { instance_double(Anthropic::Client) }
     let(:messages_api) { instance_double("Messages") }
+    let(:gemini_client) { double("Gemini") }
 
     before do
+      # テスト用の環境変数を設定
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with("ANTHROPIC_API_KEY").and_return("test_anthropic_key")
+      allow(ENV).to receive(:[]).with("GEMINI_API_KEY").and_return("test_gemini_key")
+
+      # Claude client のモック
       allow(Anthropic::Client).to receive(:new).and_return(anthropic_client)
       allow(anthropic_client).to receive(:messages).and_return(messages_api)
+
+      # Gemini client のモック
+      allow(Gemini).to receive(:new).and_return(gemini_client)
     end
 
     context "記事が生成され、精査に成功した場合" do
@@ -58,19 +68,28 @@ RSpec.describe Content::GenerateArticle, type: :action do
       end
 
       before do
-        # 記事生成APIレスポンス
+        # 記事生成APIレスポンス (Claude)
         allow(messages_api).to receive(:create).with(
           hash_including(max_tokens: 4096)
         ).and_return(
           double(content: [double(text: generated_article.to_json)])
         ).once
 
-        # 精査APIレスポンス
-        allow(messages_api).to receive(:create).with(
-          hash_including(max_tokens: 2048)
-        ).and_return(
-          double(content: [double(text: review_result.to_json)])
-        ).once
+        # 精査APIレスポンス (Gemini)
+        gemini_response = [
+          {
+            "candidates" => [
+              {
+                "content" => {
+                  "parts" => [
+                    { "text" => review_result.to_json }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+        allow(gemini_client).to receive(:stream_generate_content).and_return(gemini_response).once
       end
 
       it "生成された記事を返す" do
@@ -148,15 +167,13 @@ RSpec.describe Content::GenerateArticle, type: :action do
 
         review_count = 0
 
-        # 精査APIレスポンス（1回目は不合格、2回目は合格）
-        allow(messages_api).to receive(:create).with(
-          hash_including(max_tokens: 2048)
-        ) do
+        # 精査APIレスポンス（1回目は不合格、2回目は合格）- Gemini
+        allow(gemini_client).to receive(:stream_generate_content) do
           review_count += 1
           if review_count == 1
-            double(content: [double(text: first_review.to_json)])
+            [{ "candidates" => [{ "content" => { "parts" => [{ "text" => first_review.to_json }] } }] }]
           else
-            double(content: [double(text: second_review.to_json)])
+            [{ "candidates" => [{ "content" => { "parts" => [{ "text" => second_review.to_json }] } }] }]
           end
         end
       end
@@ -232,12 +249,21 @@ RSpec.describe Content::GenerateArticle, type: :action do
           double(content: [double(text: article_with_issues.to_json)])
         ).exactly(3).times
 
-        # 精査も3回実行（すべて不合格）
-        allow(messages_api).to receive(:create).with(
-          hash_including(max_tokens: 2048)
-        ).and_return(
-          double(content: [double(text: failed_review.to_json)])
-        ).exactly(3).times
+        # 精査も3回実行（すべて不合格）- Gemini
+        gemini_failed_response = [
+          {
+            "candidates" => [
+              {
+                "content" => {
+                  "parts" => [
+                    { "text" => failed_review.to_json }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+        allow(gemini_client).to receive(:stream_generate_content).and_return(gemini_failed_response).exactly(3).times
       end
 
       it "リトライ上限後も記事を返す" do

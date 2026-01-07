@@ -48,6 +48,7 @@ gem "octokit"
 # LLM API Client
 gem "anthropic"
 gem "cgi"  # Required by anthropic gem in Ruby 4.0+
+gem "gemini-ai"  # Google Gemini API client
 
 # Environment Variables
 gem "dotenv-rails", groups: [:development, :test]
