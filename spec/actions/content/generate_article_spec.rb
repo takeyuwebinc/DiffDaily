@@ -2,12 +2,14 @@ require "rails_helper"
 
 RSpec.describe Content::GenerateArticle, type: :action do
   let(:repository_name) { "basecamp/kamal" }
+  let(:merged_at) { 1.day.ago }
   let(:pr_data) do
     {
       number: 123,
       title: "Add health check support",
       body: "This PR adds health check support for better monitoring.",
       url: "https://github.com/basecamp/kamal/pull/123",
+      merged_at: merged_at,
       diff: [
         {
           filename: "lib/kamal/health_check.rb",
@@ -101,6 +103,7 @@ RSpec.describe Content::GenerateArticle, type: :action do
         expect(result[:review_status]).to eq("approved")
         expect(result[:review_attempts]).to eq(1)
         expect(result[:review_issues]).to eq([])
+        expect(result[:merged_at]).to be_within(1.second).of(merged_at)
       end
 
       it "リトライなしで承認される" do

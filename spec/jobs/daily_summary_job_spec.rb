@@ -2,12 +2,14 @@ require 'rails_helper'
 
 RSpec.describe DailySummaryJob, type: :job do
   let(:repository) { create(:repository, name: 'rails/rails') }
+  let(:merged_at) { 1.day.ago }
   let(:pr_data) do
     {
       number: 123,
       title: "Test PR",
       url: "https://github.com/rails/rails/pull/123",
       body: "Test description",
+      merged_at: merged_at,
       diff: []
     }
   end
@@ -23,7 +25,8 @@ RSpec.describe DailySummaryJob, type: :job do
               summary: "Test summary",
               review_status: "approved",
               review_attempts: 1,
-              review_issues: []
+              review_issues: [],
+              merged_at: merged_at
             },
             model_name: "Claude Sonnet 4.5"
           )
@@ -34,6 +37,12 @@ RSpec.describe DailySummaryJob, type: :job do
         expect {
           described_class.perform_now(repository.id)
         }.to change(Post, :count).by(1)
+      end
+
+      it 'sets published_at to PR merged_at time' do
+        described_class.perform_now(repository.id)
+        post = Post.last
+        expect(post.published_at).to be_within(1.second).of(merged_at)
       end
 
       context 'when post already exists for the same PR' do

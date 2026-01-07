@@ -57,7 +57,7 @@ class DailySummaryJob < ApplicationJob
       return
     end
 
-    # resultはハッシュ形式: { article: "...", summary: "...", review_status: "...", review_attempts: N, review_issues: [...], reviewer_model: "...", review_details: {...} }
+    # resultはハッシュ形式: { article: "...", summary: "...", review_status: "...", review_attempts: N, review_issues: [...], reviewer_model: "...", review_details: {...}, merged_at: Time }
     article_content = result[:article]
     summary = result[:summary]
     review_status = result[:review_status]
@@ -65,6 +65,7 @@ class DailySummaryJob < ApplicationJob
     review_issues = result[:review_issues]
     reviewer_model = result[:reviewer_model]
     review_details = result[:review_details]
+    merged_at = result[:merged_at] # PRのマージ日時
 
     # タイトルを記事の最初の行から抽出（# で始まる行）
     title = extract_title(article_content, pr_data[:title])
@@ -76,7 +77,7 @@ class DailySummaryJob < ApplicationJob
       summary: summary,
       source_url: pr_data[:url],
       generated_by: action.model_name,
-      published_at: Time.current,
+      published_at: merged_at, # PRのマージ日時を公開日時として使用
       status: :published,
       review_status: review_status,
       review_attempts: review_attempts,

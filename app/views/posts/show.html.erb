@@ -46,8 +46,8 @@
       </h1>
 
       <div class="flex items-center text-sm text-gray-600 space-x-4">
-        <time datetime="<%= @post.published_at&.iso8601 %>">
-          <%= @post.published_at&.strftime("%Y年%m月%d日 %H:%M") %>
+        <time datetime="<%= @post.published_at&.in_time_zone('Tokyo')&.iso8601 %>">
+          <%= @post.published_at&.in_time_zone('Tokyo')&.strftime("%Y年%m月%d日 %H:%M JST") %>
         </time>
         <span class="flex items-center">
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

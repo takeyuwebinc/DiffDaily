@@ -209,6 +209,7 @@ module Content
       @repository_name = repository_name
       @pr_data = pr_data
       @repository_url = repository_url
+      @merged_at = pr_data[:merged_at] # PRのマージ日時を保存
       @claude_client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
       @gemini_client = Gemini.new(
         credentials: {
@@ -514,7 +515,8 @@ module Content
         review_attempts: retry_count + 1, # 初回も1回とカウント
         review_issues: review_result[:issues],
         reviewer_model: review_result[:reviewer_model],
-        review_details: review_details
+        review_details: review_details,
+        merged_at: @merged_at # PRのマージ日時を追加
       )
     end
 
