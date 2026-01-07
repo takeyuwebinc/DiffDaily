@@ -86,6 +86,36 @@ module Content
       重要: リポジトリのベースURLは、この記事の対象となっているリポジトリのURLを使用してください。
       別のリポジトリのコミットやPR、Issueに言及する場合は、そのリポジトリの完全なURLを使用してください。
 
+      ## コードブロックの前後の空行
+      コードブロックの前後には必ず空行を入れてください。見出しや段落とコードブロックが直接隣接しないようにしてください。
+
+      ### 悪い例
+      ```markdown
+      **変更前:**
+      ```ruby:railties/lib/rails/application/finisher.rb
+      initializer :enable_yjit do
+        if config.yjit && defined?(RubyVM::YJIT.enable)
+          options = config.yjit.is_a?(Hash) ? config.yjit : {}
+          RubyVM::YJIT.enable(**options)
+        end
+      end
+      ```
+      ```
+
+      ### 良い例
+      ```markdown
+      **変更前:**
+
+      ```ruby:railties/lib/rails/application/finisher.rb
+      initializer :enable_yjit do
+        if config.yjit && defined?(RubyVM::YJIT.enable)
+          options = config.yjit.is_a?(Hash) ? config.yjit : {}
+          RubyVM::YJIT.enable(**options)
+        end
+      end
+      ```
+      ```
+
       # Output Format (JSON)
       記事と要約を以下のJSON形式で出力してください。
       コードブロック（```json）で囲まず、JSON形式のみを出力してください。
