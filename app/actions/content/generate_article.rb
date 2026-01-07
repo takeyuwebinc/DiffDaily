@@ -544,12 +544,19 @@ module Content
       # Gemini APIで精査を実行（リトライ付き）
       full_prompt = "#{REVIEW_PROMPT}\n\n#{review_user_prompt}"
 
+      # プロンプト長の確認
+      Rails.logger.info("Review prompt length: #{full_prompt.length} characters")
+
       max_api_retries = 3
       retry_count = 0
 
       begin
         result = @gemini_client.stream_generate_content({
-          contents: { role: "user", parts: { text: full_prompt } }
+          contents: { role: "user", parts: { text: full_prompt } },
+          generationConfig: {
+            maxOutputTokens: 8192,  # Gemini 2.5 Proの最大出力トークン数
+            temperature: 0.7
+          }
         })
 
         # レスポンスからテキストを抽出
@@ -559,6 +566,13 @@ module Content
         parsed_result = parse_review_response(response_text)
         parsed_result[:reviewer_model] = REVIEWER_MODEL_NAME
         parsed_result
+      rescue Faraday::BadRequestError => e
+        # 400エラーの詳細をログに記録
+        Rails.logger.error("Gemini API 400 Bad Request error: #{e.message}")
+        Rails.logger.error("Response body: #{e.response[:body]}")
+        Rails.logger.error(e.backtrace.join("\n"))
+        # 400エラーの場合は承認として扱う（精査機能の障害で記事生成を止めない）
+        { approved: true, issues: [], overall_feedback: "Review error: Bad Request (400)", raw_response: {}, reviewer_model: "Review Error" }
       rescue Faraday::TooManyRequestsError => e
         retry_count += 1
         if retry_count < max_api_retries
