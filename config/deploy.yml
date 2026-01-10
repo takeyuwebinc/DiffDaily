@@ -48,6 +48,8 @@ env:
     - GOOGLE_APPLICATION_CREDENTIALS
   clear:
     TZ: "Asia/Tokyo"
+    # Google Analytics 4
+    GA_MEASUREMENT_ID: "G-Y5RT4N3HB5"
     # Gemini API configuration
     GEMINI_SERVICE_TYPE: "vertex-ai-api"  # or "generative-language-api" for production
     GOOGLE_CLOUD_REGION: "us-central1"  # or "asia-northeast1" for Tokyo region
