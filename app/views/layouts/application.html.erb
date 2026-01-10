@@ -45,8 +45,14 @@
     </main>
 
     <footer class="bg-white border-t border-gray-200 mt-16">
-      <div class="container mx-auto px-6 py-6 text-center text-sm text-gray-600">
-        <p>&copy; <%= Time.current.year %> DiffDaily - Powered by AI</p>
+      <div class="container mx-auto px-6 py-6">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
+          <p>&copy; <%= Time.current.year %> DiffDaily - Powered by AI</p>
+          <div class="flex gap-4">
+            <a href="https://github.com/takeyuwebinc/DiffDaily" class="hover:text-blue-600 transition" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://takeyuweb.co.jp/" class="hover:text-blue-600 transition" target="_blank" rel="noopener">タケユー・ウェブ</a>
+          </div>
+        </div>
       </div>
     </footer>
   </body>
