@@ -1,3 +1,7 @@
+<% content_for :rss_autodiscovery do %>
+  <%= auto_discovery_link_tag :rss, repository_posts_url(@repository, format: :rss), title: "DiffDaily - #{@repository.name} RSS" %>
+<% end %>
+
 <div class="w-full">
   <div class="mb-6">
     <%= link_to root_path, class: "text-blue-600 hover:text-blue-800 text-sm flex items-center" do %>

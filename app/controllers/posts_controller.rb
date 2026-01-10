@@ -1,7 +1,15 @@
 class PostsController < ApplicationController
   def index
     @repositories = Repository.with_published_posts
-    @posts = Post.published.page(params[:page]).per(20)
+
+    respond_to do |format|
+      format.html do
+        @posts = Post.published.page(params[:page]).per(20)
+      end
+      format.rss do
+        @posts = Post.published.includes(:repository).limit(50)
+      end
+    end
   end
 
   def show
