@@ -8,11 +8,16 @@ class DailySummaryJob < ApplicationJob
 
     Rails.logger.info "Starting daily summary for #{repository.name}"
 
-    # GitHubから過去24時間の変更を取得
-    recent_changes = Github::FetchRecentChanges.perform(repository.name, hours_ago: 24)
+    # 取得起点日時を決定（last_fetched_atがなければ24時間前）
+    since = repository.last_fetched_at || 24.hours.ago
+    Rails.logger.info "Fetching PRs since #{since}"
+
+    # GitHubから指定日時以降の変更を取得
+    recent_changes = Github::FetchRecentChanges.perform(repository.name, since: since)
 
     if recent_changes.empty?
       Rails.logger.info "No recent changes found for #{repository.name}"
+      update_last_fetched_at(repository)
       return
     end
 
@@ -23,10 +28,18 @@ class DailySummaryJob < ApplicationJob
       process_pull_request(repository, pr_data)
     end
 
+    # 正常完了時のみ最終取得日時を更新
+    update_last_fetched_at(repository)
+
     Rails.logger.info "Completed daily summary for #{repository.name}"
   end
 
   private
+
+  def update_last_fetched_at(repository)
+    repository.update!(last_fetched_at: Time.current)
+    Rails.logger.info "Updated last_fetched_at to #{repository.last_fetched_at}"
+  end
 
   def find_repository(identifier)
     if identifier.is_a?(Integer) || identifier.to_s.match?(/^\d+$/)

@@ -1,16 +1,21 @@
 module Github
   class FetchRecentChanges < ApplicationAction
-    # 過去24時間のマージされたPull Requestsとその差分を取得する
+    # 指定日時以降にマージされたPull Requestsとその差分を取得する
     # ノイズをフィルタリングして返す
 
-    def initialize(repository_name, hours_ago: 24, access_token: nil)
+    # @param repository_name [String] リポジトリ名（owner/repo形式）
+    # @param since [Time, nil] 取得起点日時（nilの場合は24時間前）
+    # @param hours_ago [Integer] sinceが未指定の場合のデフォルト期間（後方互換性のため維持）
+    # @param access_token [String, nil] GitHub APIアクセストークン
+    def initialize(repository_name, since: nil, hours_ago: 24, access_token: nil)
       @repository_name = repository_name
+      @since = since
       @hours_ago = hours_ago
       @client = Octokit::Client.new(access_token: access_token || ENV["GITHUB_ACCESS_TOKEN"])
     end
 
     def perform
-      since = @hours_ago.hours.ago
+      since = @since || @hours_ago.hours.ago
       pull_requests = fetch_merged_pull_requests(since)
       filtered_prs = filter_noise(pull_requests)
 
