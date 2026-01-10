@@ -1,5 +1,6 @@
 class PostsController < ApplicationController
   def index
+    @repositories = Repository.with_published_posts
     @posts = Post.published.page(params[:page]).per(20)
   end
 

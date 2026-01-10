@@ -14,6 +14,10 @@ Rails.application.routes.draw do
 
   resources :posts, only: [ :index, :show ]
 
+  resources :repositories, only: [] do
+    resources :posts, only: [ :index ], module: :repositories
+  end
+
   # API routes
   namespace :api do
     resource :link_cards, only: [] do

@@ -1,23 +1,18 @@
 <div class="w-full">
-  <% if @repositories.any? %>
-    <div class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-3">リポジトリ</h2>
-      <div class="flex flex-wrap gap-2">
-        <% @repositories.each do |repository| %>
-          <%= link_to repository_posts_path(repository), class: "inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition" do %>
-            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-            </svg>
-            <%= repository.name %>
-          <% end %>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
+  <div class="mb-6">
+    <%= link_to root_path, class: "text-blue-600 hover:text-blue-800 text-sm flex items-center" do %>
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      トップに戻る
+    <% end %>
+  </div>
 
   <div class="mb-8">
-    <h2 class="text-2xl font-bold text-gray-900 mb-2">最新の記事</h2>
-    <p class="text-gray-600">AI生成による技術記事の一覧</p>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2"><%= @repository.name %></h2>
+    <p class="text-gray-600">
+      <%= link_to @repository.url, @repository.url, target: "_blank", rel: "noopener noreferrer", class: "text-blue-600 hover:text-blue-800 hover:underline" %>
+    </p>
   </div>
 
   <% if @posts.any? %>
@@ -41,12 +36,6 @@
               <time datetime="<%= post.published_at&.in_time_zone('Tokyo')&.iso8601 %>">
                 <%= post.published_at&.in_time_zone('Tokyo')&.strftime("%Y年%m月%d日") %>
               </time>
-              <span class="flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                </svg>
-                <%= post.repository.name %>
-              </span>
               <% if post.generated_by.present? %>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   <%= post.generated_by %>
@@ -64,7 +53,6 @@
   <% else %>
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
       <p class="text-gray-500 text-lg">まだ記事がありません</p>
-      <p class="text-gray-400 text-sm mt-2">DailySummaryJobを実行して記事を生成してください</p>
     </div>
   <% end %>
 </div>

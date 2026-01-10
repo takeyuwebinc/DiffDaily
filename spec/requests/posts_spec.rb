@@ -73,6 +73,27 @@ RSpec.describe "Posts" do
         expect(response).to have_http_status(:success)
       end
     end
+
+    context "with repository list" do
+      let(:repository_with_posts) { create(:repository, name: "repo-with-posts") }
+      let(:repository_without_posts) { create(:repository, name: "repo-without-posts") }
+      let!(:published_post) { create(:post, :published, repository: repository_with_posts) }
+
+      it "displays repositories with published posts" do
+        get posts_path
+        expect(response.body).to include(repository_with_posts.name)
+      end
+
+      it "does not display repositories without published posts" do
+        get posts_path
+        expect(response.body).not_to include(repository_without_posts.name)
+      end
+
+      it "displays link to repository posts page" do
+        get posts_path
+        expect(response.body).to include(repository_posts_path(repository_with_posts))
+      end
+    end
   end
 
   describe "GET /posts/:id" do
@@ -107,6 +128,13 @@ RSpec.describe "Posts" do
         get post_path(draft_post)
         expect(response).to have_http_status(:success)
         expect(response.body).to include(draft_post.title)
+      end
+    end
+
+    context "with repository link" do
+      it "displays link to repository posts page" do
+        get post_path(post)
+        expect(response.body).to include(repository_posts_path(repository))
       end
     end
   end
