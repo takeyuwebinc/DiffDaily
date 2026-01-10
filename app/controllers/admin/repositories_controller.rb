@@ -14,7 +14,8 @@ module Admin
       @repository = Repository.new(repository_params)
 
       if @repository.save
-        redirect_to admin_repositories_path, notice: "リポジトリを登録しました"
+        DailySummaryJob.perform_later(@repository.id)
+        redirect_to admin_repositories_path, notice: "リポジトリを登録しました。初回の取り込みをキューに追加しました。"
       else
         render :new, status: :unprocessable_entity
       end

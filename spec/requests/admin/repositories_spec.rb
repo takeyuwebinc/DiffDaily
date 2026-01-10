@@ -65,6 +65,12 @@ RSpec.describe "Admin::Repositories", type: :request do
         }.to change(Repository, :count).by(1)
       end
 
+      it "enqueues DailySummaryJob for initial fetch" do
+        expect {
+          post admin_repositories_path, params: valid_params
+        }.to have_enqueued_job(DailySummaryJob)
+      end
+
       it "redirects to the repository list" do
         post admin_repositories_path, params: valid_params
         expect(response).to redirect_to(admin_repositories_path)
