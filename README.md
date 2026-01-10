@@ -126,6 +126,41 @@ GEMINI_SERVICE_TYPE=vertex-ai-api
 ENABLE_ARTICLE_REVIEW=false
 ```
 
+#### Google OAuth2 の設定（管理画面ログイン）
+
+管理画面（`/admin`）へのログインにはGoogle OAuth2を使用します。
+
+**1. Google Cloud Consoleでプロジェクトを作成または選択**
+
+https://console.cloud.google.com/
+
+**2. OAuth同意画面を設定**
+
+1. APIs & Services > OAuth consent screen にアクセス
+2. User Type: `Internal`（組織内ユーザーのみ）または `External` を選択
+3. アプリ名、サポートメールなどを入力
+4. スコープは `email`, `profile`, `openid` を追加
+
+**3. OAuth 2.0クライアントIDを作成**
+
+1. APIs & Services > Credentials にアクセス
+2. 「認証情報を作成」→「OAuth クライアント ID」を選択
+3. アプリケーションの種類: `ウェブ アプリケーション`
+4. 承認済みのリダイレクトURI:
+   - 開発環境: `http://localhost:3000/auth/google_oauth2/callback`
+   - 本番環境: `https://your-domain.com/auth/google_oauth2/callback`
+5. 作成後、クライアントIDとクライアントシークレットをコピー
+
+**4. `.env` に設定**
+
+```bash
+# Google OAuth2 (for admin login)
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
+```
+
+⚠️ **注意**: デフォルトでは `@takeyuweb.co.jp` ドメインのアカウントのみログインが許可されています。別のドメインを使用する場合は `GOOGLE_OAUTH_ALLOWED_DOMAIN` 環境変数を設定してください。
+
 **トラブルシューティング**
 
 Vertex AI API使用時のよくあるエラー：

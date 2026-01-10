@@ -53,6 +53,11 @@ gem "gemini-ai"  # Google Gemini API client
 # Environment Variables
 gem "dotenv-rails", groups: [:development, :test]
 
+# OAuth Authentication
+gem "omniauth"
+gem "omniauth-google-oauth2"
+gem "omniauth-rails_csrf_protection"
+
 # Pagination
 gem "kaminari"
 

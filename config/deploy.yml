@@ -46,8 +46,13 @@ env:
     # Vertex AI credentials (optional - for production environments with location restrictions)
     - GOOGLE_CLOUD_PROJECT_ID
     - GOOGLE_APPLICATION_CREDENTIALS
+    # Google OAuth2 (for admin login)
+    - GOOGLE_CLIENT_ID
+    - GOOGLE_CLIENT_SECRET
   clear:
     TZ: "Asia/Tokyo"
+    # Google OAuth2 allowed domain (for admin login)
+    GOOGLE_OAUTH_ALLOWED_DOMAIN: "takeyuweb.co.jp"
     # Google Analytics 4
     GA_MEASUREMENT_ID: "G-Y5RT4N3HB5"
     # Gemini API configuration

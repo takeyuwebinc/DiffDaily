@@ -12,12 +12,26 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "posts#index"
 
-  resources :posts, only: [:index, :show]
+  resources :posts, only: [ :index, :show ]
 
   # API routes
   namespace :api do
     resource :link_cards, only: [] do
       get :metadata, on: :collection
     end
+  end
+
+  # OmniAuth callback routes
+  get "/auth/:provider/callback", to: "admin/omniauth_callbacks#google_oauth2", as: :omniauth_callback
+  get "/auth/failure", to: "admin/omniauth_callbacks#failure"
+
+  # Admin routes
+  namespace :admin do
+    get "login", to: "sessions#new"
+    delete "logout", to: "sessions#destroy"
+
+    root "dashboards#show"
+
+    resources :repositories, only: [ :index, :new, :create, :destroy ]
   end
 end

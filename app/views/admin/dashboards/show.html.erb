@@ -1,0 +1,39 @@
+<% content_for(:title) { "Dashboard - DiffDaily Admin" } %>
+
+<h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center">
+      <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-gray-500">Repositories</p>
+        <p class="text-3xl font-bold text-gray-900"><%= @repositories_count %></p>
+      </div>
+    </div>
+    <div class="mt-4">
+      <%= link_to "View all", admin_repositories_path, class: "text-blue-600 hover:text-blue-800 text-sm font-medium" %>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center">
+      <div class="p-3 rounded-full bg-green-100 text-green-600">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-gray-500">Posts</p>
+        <p class="text-3xl font-bold text-gray-900"><%= @posts_count %></p>
+      </div>
+    </div>
+    <div class="mt-4">
+      <%= link_to "View site", root_path, class: "text-green-600 hover:text-green-800 text-sm font-medium", target: "_blank" %>
+    </div>
+  </div>
+</div>
