@@ -116,16 +116,15 @@ RSpec.describe Post do
       expect(post.review_issues).to eq([])
     end
 
-    it 'can store nil' do
+    it 'defaults to empty array when not specified' do
       post = Post.create!(
         repository: repository,
         title: "Test Post",
-        body: "Test content",
-        review_issues: nil
+        body: "Test content"
       )
 
       post.reload
-      expect(post.review_issues).to be_nil
+      expect(post.review_issues).to eq([])
     end
   end
 

@@ -77,21 +77,19 @@ RSpec.describe Content::GenerateArticle, type: :action do
           double(content: [double(text: generated_article.to_json)])
         ).once
 
-        # 精査APIレスポンス (Gemini)
-        gemini_response = [
-          {
-            "candidates" => [
-              {
-                "content" => {
-                  "parts" => [
-                    { "text" => review_result.to_json }
-                  ]
-                }
+        # 精査APIレスポンス (Gemini) - 非ストリーミング版
+        gemini_response = {
+          "candidates" => [
+            {
+              "content" => {
+                "parts" => [
+                  { "text" => review_result.to_json }
+                ]
               }
-            ]
-          }
-        ]
-        allow(gemini_client).to receive(:stream_generate_content).and_return(gemini_response).once
+            }
+          ]
+        }
+        allow(gemini_client).to receive(:generate_content).and_return(gemini_response).once
       end
 
       it "生成された記事を返す" do
@@ -170,13 +168,13 @@ RSpec.describe Content::GenerateArticle, type: :action do
 
         review_count = 0
 
-        # 精査APIレスポンス（1回目は不合格、2回目は合格）- Gemini
-        allow(gemini_client).to receive(:stream_generate_content) do
+        # 精査APIレスポンス（1回目は不合格、2回目は合格）- Gemini 非ストリーミング版
+        allow(gemini_client).to receive(:generate_content) do
           review_count += 1
           if review_count == 1
-            [{ "candidates" => [{ "content" => { "parts" => [{ "text" => first_review.to_json }] } }] }]
+            { "candidates" => [{ "content" => { "parts" => [{ "text" => first_review.to_json }] } }] }
           else
-            [{ "candidates" => [{ "content" => { "parts" => [{ "text" => second_review.to_json }] } }] }]
+            { "candidates" => [{ "content" => { "parts" => [{ "text" => second_review.to_json }] } }] }
           end
         end
       end
@@ -252,21 +250,19 @@ RSpec.describe Content::GenerateArticle, type: :action do
           double(content: [double(text: article_with_issues.to_json)])
         ).exactly(3).times
 
-        # 精査も3回実行（すべて不合格）- Gemini
-        gemini_failed_response = [
-          {
-            "candidates" => [
-              {
-                "content" => {
-                  "parts" => [
-                    { "text" => failed_review.to_json }
-                  ]
-                }
+        # 精査も3回実行（すべて不合格）- Gemini 非ストリーミング版
+        gemini_failed_response = {
+          "candidates" => [
+            {
+              "content" => {
+                "parts" => [
+                  { "text" => failed_review.to_json }
+                ]
               }
-            ]
-          }
-        ]
-        allow(gemini_client).to receive(:stream_generate_content).and_return(gemini_failed_response).exactly(3).times
+            }
+          ]
+        }
+        allow(gemini_client).to receive(:generate_content).and_return(gemini_failed_response).exactly(3).times
       end
 
       it "リトライ上限後も記事を返す" do
