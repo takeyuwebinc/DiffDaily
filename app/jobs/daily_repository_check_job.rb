@@ -1,9 +1,13 @@
 class DailyRepositoryCheckJob < ApplicationJob
   queue_as :default
 
-  # 全リポジトリの過去24時間の変更をチェックして記事を生成
+  # 取得間隔（デフォルト24時間）
+  FETCH_INTERVAL = 24.hours
+
+  # 取得間隔を経過したリポジトリのPRを取得する
+  # 30分ごとに実行され、取得対象のリポジトリのみを処理することで負荷を分散
   def perform
-    Rails.logger.info "Starting daily repository check for all repositories"
+    Rails.logger.info "Starting interval-based repository check"
 
     repositories = Repository.all
 
@@ -12,22 +16,39 @@ class DailyRepositoryCheckJob < ApplicationJob
       return
     end
 
-    Rails.logger.info "Found #{repositories.count} repositories to check"
+    due_repositories = repositories.select { |repo| fetch_due?(repo) }
 
-    repositories.each do |repository|
+    if due_repositories.empty?
+      Rails.logger.info "No repositories due for fetching (checked #{repositories.count} repositories)"
+      return
+    end
+
+    Rails.logger.info "Found #{due_repositories.count} repositories due for fetching (out of #{repositories.count} total)"
+
+    due_repositories.each do |repository|
       begin
-        Rails.logger.info "Checking repository: #{repository.name}"
+        Rails.logger.info "Fetching repository: #{repository.name} (last fetched: #{repository.last_fetched_at || 'never'})"
 
-        # 各リポジトリに対してDailySummaryJobを実行
         DailySummaryJob.perform_now(repository.id)
 
-        Rails.logger.info "Completed check for #{repository.name}"
+        Rails.logger.info "Completed fetch for #{repository.name}"
       rescue StandardError => e
-        Rails.logger.error "Failed to check repository #{repository.name}: #{e.message}"
+        Rails.logger.error "Failed to fetch repository #{repository.name}: #{e.message}"
         Rails.logger.error e.backtrace.join("\n")
       end
     end
 
-    Rails.logger.info "Completed daily repository check for all repositories"
+    Rails.logger.info "Completed interval-based repository check"
+  end
+
+  private
+
+  # リポジトリが取得対象かどうかを判定
+  # - last_fetched_atがNULLの場合: 取得対象
+  # - last_fetched_at + 取得間隔 <= 現在時刻の場合: 取得対象
+  def fetch_due?(repository)
+    return true if repository.last_fetched_at.nil?
+
+    repository.last_fetched_at + FETCH_INTERVAL <= Time.current
   end
 end

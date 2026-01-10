@@ -14,18 +14,18 @@ production:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
 
-  daily_repository_check:
+  interval_repository_check:
     class: DailyRepositoryCheckJob
-    schedule: every day at 6am
+    schedule: every 30 minutes
 
   import_rails_repos:
     class: ImportRailsReposJob
     schedule: every day at 5am
 
 development:
-  daily_repository_check:
+  interval_repository_check:
     class: DailyRepositoryCheckJob
-    schedule: every day at 6am
+    schedule: every 30 minutes
 
   import_rails_repos:
     class: ImportRailsReposJob
