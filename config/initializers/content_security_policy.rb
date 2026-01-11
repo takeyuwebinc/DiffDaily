@@ -10,9 +10,11 @@ Rails.application.configure do
     policy.font_src    :self, :https, :data
     policy.img_src     :self, :https, :data, "*"
     policy.object_src  :none
-    policy.script_src  :self, :https, "https://cdn.jsdelivr.net", :unsafe_inline
+    policy.script_src  :self, :https, "https://cdn.jsdelivr.net", "https://www.googletagmanager.com", :unsafe_inline
     # Mermaidが動的にSVGのインラインスタイルを生成するため、unsafe-inlineを許可
     policy.style_src   :self, :https, "https://cdn.jsdelivr.net", :unsafe_inline
+    # Google Analytics用
+    policy.connect_src :self, "https://www.google-analytics.com", "https://analytics.google.com", "https://region1.google-analytics.com"
     # Specify URI for violation reports
     # policy.report_uri "/csp-violation-report-endpoint"
   end
